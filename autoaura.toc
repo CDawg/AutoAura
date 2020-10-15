@@ -1,0 +1,8 @@
+## Interface: 11305
+## Title: AutoAura
+## Notes: Manage the auto removal of auras/buffs that do not benefit your character.
+## Author: Porthios of Myzrael (aka CDawg)
+## SavedVariables:AutoAura
+## OptionalDeps: Blizzard_RaidUI, Blizzard_CompactRaidFrames
+
+autoaura.lua

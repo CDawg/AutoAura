@@ -19,93 +19,97 @@ https://www.wowinterface.com/forums/showthread.php?t=40444
 ]==]--
 
 app_global = "|cffDA70D6AutoAura: |r"
-app_version = "1.2"
+app_font   = "Fonts/ARIALN.ttf"
+app_version= 1.210
 
-DEFAULT_CHAT_FRAME:AddMessage (app_global .. "Initializing v" .. app_version .. "...")
+print(app_global .. "Initializing v" .. app_version .. "...")
 
 local function getPlayerInformation()
   player_name = UnitName("player")
   return player_name
 end
-playerName = getPlayerInformation() .. "-" .. GetRealmName()
+local playerName = getPlayerInformation() .. "-" .. GetRealmName()
+
+AANotification = {}
+local function clearNotifications()
+  AANotification:Hide()
+end
+
+local _GTime = 1
+local function fadeNotification()
+  _GTime = _GTime -0.060
+  --print(_GTime)
+  AANotification.text:SetTextColor(1,1,1,_GTime)
+  if (_GTime <= 0.01) then
+    _GTime = 1
+    --print("clear")
+    clearNotifications()
+    return false
+  end
+  C_Timer.After(0.10, fadeNotification)
+end
+
+local function Notification(msg)
+  AANotification:Show()
+  AANotification.text:SetText(app_global .. msg)
+  AANotification.text:SetTextColor(1,1,1,1)
+  --_G[]
+  C_Timer.After(5, function()
+    fadeNotification()
+  end)
+end
 
 local function CancelPlayerBuff(buffName, buffIndex)
   local i = 0
   if (UnitAffectingCombat('player')) then
-    DEFAULT_CHAT_FRAME:AddMessage (app_global .. "Unable to remove [" .. buffName .. "] during combat!")
+    Notification("Unable to remove [" .. buffName .. "] during combat!")
   else
-    DEFAULT_CHAT_FRAME:AddMessage (app_global .. buffName .. " removed!")
+    Notification(buffName .. " removed!")
     CancelUnitBuff("player", buffIndex)
   end
 end
 
-auraTimer = 1
-function handleAuras()
+local checkbox = {}
+
+local buffList = {
+  {"ARSalv",  "Blessing of Salvation", "Interface/Icons/Spell_Holy_GreaterBlessingofSalvation"},
+  {"ARMight", "Blessing of Might",     "Interface/Icons/Spell_Holy_GreaterBlessingofKings"},
+  {"ARSanc",  "Blessing of Sanctuary", "Interface/Icons/Spell_Holy_GreaterBlessingofSanctuary"},
+  {"ARInt",   "Arcane Brilliance",     "Interface/Icons/Spell_Holy_ArcaneIntellect"},
+  {"ARPoS",   "Prayer of Spirit",      "Interface/Icons/Spell_Holy_PrayerofSpirit"},
+  {"ARThorns","Thorns",                "Interface/Icons/Spell_Nature_Thorns"},
+}
+
+--[==[
+for k,v in pairs(buffList) do
+  print(k .. " " .. v[1])
+end
+]==]--
+
+local function handleAuras()
   local total = 1
 
-  if (auraTimer == 1) then
-    while UnitBuff("player", total) do
-        local buff = UnitBuff("player", total)
+  while UnitBuff("player", total) do
+    local buff = UnitBuff("player", total)
 
-        local localBuff = "Blessing of Salvation"
-        if (checkbox["ARSalv"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
+    for k,v in pairs(buffList) do
+      local localBuff = v[2]
+      if (checkbox[v[1]]:GetChecked()) then
+        if string.find(buff, localBuff) then
+          CancelPlayerBuff(localBuff, total)
         end
-        local localBuff = "Blessing of Might"
-        if (checkbox["ARMight"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-        local localBuff = "Blessing of Sanctuary"
-        if (checkbox["ARSanc"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-        local localBuff = "Arcane Brilliance"
-        if (checkbox["ARInt"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-        local localBuff = "Arcane Intellect"
-        if (checkbox["ARInt"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-        local localBuff = "Prayer of Spirit"
-        if (checkbox["ARPoS"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-        local localBuff = "Thorns"
-        if (checkbox["ARThorns"]:GetChecked()) then
-          if string.find(buff, localBuff) then
-            CancelPlayerBuff(localBuff, total)
-          end
-        end
-      -- DEFAULT_CHAT_FRAME:AddMessage(app_global .. buff .. " index:" .. total) -- DEBUG
-      total = total + 1
+      end
     end
-  end
-  auraTimer = auraTimer + 1
-  if (auraTimer >= 3) then
-    auraTimer = 1
+    total = total + 1
   end
 end
 
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
-frame:RegisterEvent("PLAYER_LOGOUT")
-frame:RegisterEvent("UNIT_AURA")
-frame:RegisterEvent("PLAYER_LEAVE_COMBAT")
-
-frame:SetScript("OnEvent", function(self, event, arg1)
+local AAFrame = CreateFrame("Frame")
+AAFrame:RegisterEvent("ADDON_LOADED")
+AAFrame:RegisterEvent("PLAYER_LOGOUT")
+AAFrame:RegisterEvent("UNIT_AURA")
+AAFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+AAFrame:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "AutoAura" then
     if AutoAura == nil then
       AutoAura = {}
@@ -126,9 +130,6 @@ frame:SetScript("OnEvent", function(self, event, arg1)
   if event == "PLAYER_REGEN_ENABLED" then -- leaves combat for all
     handleAuras()
   end
-  if event == "PLAYER_LEAVE_COMBAT" then -- leave combat melee
-    handleAuras()
-  end
 
 end)
 
@@ -137,97 +138,68 @@ function SlashCmdList.AutoAura(msg)
   -- print("debug " .. AutoAura)
 end
 
-function setAutoAuraVars()
-  if (AutoAura[playerName]["ARSalv"]) then
-    checkbox["ARSalv"]:SetChecked(true)
+local function setAutoAuraVars()
+  for k,v in pairs(buffList) do
+    if (AutoAura[playerName][v[1]]) then
+      checkbox[v[1]]:SetChecked(true)
+    end
   end
-  if (AutoAura[playerName]["ARMight"]) then
-    checkbox["ARMight"]:SetChecked(true)
-  end
-  if (AutoAura[playerName]["ARSanc"]) then
-    checkbox["ARSanc"]:SetChecked(true)
-  end
-  if (AutoAura[playerName]["ARInt"]) then
-    checkbox["ARInt"]:SetChecked(true)
-  end
-  if (AutoAura[playerName]["ARPoS"]) then
-    checkbox["ARPoS"]:SetChecked(true)
-  end
-  if (AutoAura[playerName]["ARThorns"]) then
-    checkbox["ARThorns"]:SetChecked(true)
+  if (AutoAura[playerName]["HideMMI"]) then
+    checkbox["HideMMI"]:SetChecked(true)
   end
 end
 
 function saveAutoAuraVars()
-  AutoAura[playerName]["ARInt"] = checkbox["ARInt"]:GetChecked()
-  AutoAura[playerName]["ARSalv"] = checkbox["ARSalv"]:GetChecked()
-  AutoAura[playerName]["ARPoS"] = checkbox["ARPoS"]:GetChecked()
-  AutoAura[playerName]["ARThorns"] = checkbox["ARThorns"]:GetChecked()
-  AutoAura[playerName]["ARMight"] = checkbox["ARMight"]:GetChecked()
-  AutoAura[playerName]["ARSanc"] = checkbox["ARSanc"]:GetChecked()
-end
 
-raiderList = {}
-function getRaiders()
-  for i = 1, GetNumGroupMembers() do
-    raiderList[i] = GetRaidRosterInfo(i)
+  for k,v in pairs(buffList) do
+    AutoAura[playerName][v[1]] = checkbox[v[1]]:GetChecked()
   end
+  AutoAura[playerName]["HideMMI"] = checkbox["HideMMI"]:GetChecked()
 end
 
-local frameMain = CreateFrame("Frame", nil, UIParent, "BasicFrameTemplateWithInset")
-frameMain:SetWidth(300)
-frameMain:SetHeight(320)
-frameMain:SetPoint("CENTER", 0, 0)
-frameMain:SetMovable(true)
-frameMain.text = frameMain:CreateFontString(nil,"ARTWORK")
-frameMain.text:SetFont("Fonts\\ARIALN.ttf", 13, "OUTLINE")
-frameMain.text:SetPoint("TOPLEFT", frameMain, "TOPLEFT", 10, -5)
-frameMain.text:SetText("|cffFF7D0AAUTO AURA " .. app_version)
-frameMain:Hide()
+local AAFrameMain = CreateFrame("Frame", nil, UIParent, "BasicFrameTemplateWithInset")
+AAFrameMain:SetWidth(260)
+AAFrameMain:SetHeight(300)
+AAFrameMain:SetPoint("CENTER", 0, 0)
+AAFrameMain:SetMovable(true)
+AAFrameMain.text = AAFrameMain:CreateFontString(nil,"ARTWORK")
+AAFrameMain.text:SetFont(app_font, 13, "OUTLINE")
+AAFrameMain.text:SetPoint("TOPLEFT", AAFrameMain, "TOPLEFT", 10, -5)
+AAFrameMain.text:SetText("|cffFF7D0AAUTO AURA " .. app_version)
+AAFrameMain:Hide()
+local AAProfileText = CreateFrame("Frame",nil, AAFrameMain)
+AAProfileText:SetWidth(100)
+AAProfileText:SetHeight(30)
+AAProfileText:SetPoint("TOPLEFT", 10, -20)
+AAProfileText.text=AAProfileText:CreateFontString(nil, "ARTWORK")
+AAProfileText.text:SetFont(app_font, 14, "OUTLINE")
+AAProfileText.text:SetPoint("TOPLEFT", 10, -20)
+AAProfileText.text:SetText("Profile:")
+local AAProfileChar = CreateFrame("Frame",nil, AAFrameMain)
+AAProfileChar:SetWidth(100)
+AAProfileChar:SetHeight(30)
+AAProfileChar:SetPoint("TOPLEFT", 20, -30)
+AAProfileChar.text=AAProfileChar:CreateFontString(nil, "ARTWORK")
+AAProfileChar.text:SetFont(app_font, 14, "OUTLINE")
+AAProfileChar.text:SetPoint("TOPLEFT", 20, -30)
+AAProfileChar.text:SetText("|cffFF7D0A" .. UnitName("player") .. " [" .. GetRealmName() .. "]")
+AANotification = CreateFrame("Frame", nil, UIParent)
+AANotification:SetWidth(300)
+AANotification:SetHeight(30)
+AANotification:SetPoint("BOTTOMLEFT", 15, 350)
+AANotification:SetFrameLevel(500)
+AANotification.text = AANotification:CreateFontString(nil, "ARTWORK")
+AANotification.text:SetFont(app_font, 15)
+AANotification.text:SetPoint("TOPLEFT", 0, 0)
+AANotification.text:SetText("")
+AANotification.text:SetTextColor(1, 1, 1, 1)
+AANotification:Hide()
 
-local profileText = CreateFrame("Frame",nil, frameMain)
-profileText:SetWidth(100)
-profileText:SetHeight(30)
-profileText:SetPoint("TOPLEFT", 10, -20)
-profileText.text=profileText:CreateFontString(nil, "ARTWORK")
-profileText.text:SetFont("Fonts\\ARIALN.ttf", 14, "OUTLINE")
-profileText.text:SetPoint("TOPLEFT", 10, -20)
-profileText.text:SetText("Profile:")
-
-local profileChar = CreateFrame("Frame",nil, frameMain)
-profileChar:SetWidth(100)
-profileChar:SetHeight(30)
-profileChar:SetPoint("TOPLEFT", 20, -30)
-profileChar.text=profileChar:CreateFontString(nil, "ARTWORK")
-profileChar.text:SetFont("Fonts\\ARIALN.ttf", 14, "OUTLINE")
-profileChar.text:SetPoint("TOPLEFT", 20, -30)
-profileChar.text:SetText("|cffFF7D0A" .. UnitName("player") .. " [" .. GetRealmName() .. "]")
-
---[==[
-function enableUI(thisFrame, thisFrameGlobal)
-  thisFrameGlobal:SetTextColor(1, 1, 1, 1)
-  thisFrame:SetEnabled(true)
-end
-function disableUI(thisFrame, thisFrameGlobal)
-  thisFrameGlobal:SetTextColor(1, 1, 1, 0.4)
-  thisFrame:SetEnabled(false)
-end
-
-function setAutoSalvChildrenUI()
-  if (check_autoRemoveSalv:GetChecked()) then
-    enableUI(check_autoSalvDuringCombat, check_autoSalvDuringCombat_GlobalNameText)
-  else
-    disableUI(check_autoSalvDuringCombat, check_autoSalvDuringCombat_GlobalNameText)
-  end
-end
-]==]--
-
-checkbox = {}
 function checkItem(checkID, checkName, icon, posY)
-  local check_static = CreateFrame("CheckButton", nil, frameMain, "ChatConfigCheckButtonTemplate")
+  local check_static = CreateFrame("CheckButton", nil, AAFrameMain, "ChatConfigCheckButtonTemplate")
   check_static:SetPoint("TOPLEFT", 30, posY)
   check_static.text = check_static:CreateFontString(nil,"ARTWORK")
-  check_static.text:SetFont("Fonts\\ARIALN.ttf", 14, "OUTLINE")
+  check_static.text:SetFont(app_font, 14, "OUTLINE")
   check_static.text:SetPoint("TOPLEFT", check_static, "TOPLEFT", 50, -5)
   check_static.text:SetText(checkName)
   -- check_static.tooltip = checkID
@@ -244,43 +216,27 @@ function checkItem(checkID, checkName, icon, posY)
 end
 
 
-local frameText = CreateFrame("Frame",nil, frameMain)
+local frameText = CreateFrame("Frame",nil, AAFrameMain)
 frameText:SetWidth(100)
 frameText:SetHeight(30)
 frameText:SetPoint("TOPLEFT", 10, -50)
 frameText.text=frameText:CreateFontString(nil, "ARTWORK")
-frameText.text:SetFont("Fonts\\ARIALN.ttf", 14, "OUTLINE")
+frameText.text:SetFont(app_font, 14, "OUTLINE")
 frameText.text:SetPoint("TOPLEFT", 10, -50)
 frameText.text:SetText("Auto Remove:")
 
-checkItem("ARSalv", "Blessing of Salvation", "Interface/Icons/Spell_Holy_GreaterBlessingofSalvation", -120)
-checkItem("ARMight","Blessing of Might", "Interface/Icons/Spell_Holy_GreaterBlessingofKings", -140)
-checkItem("ARSanc", "Blessing of Sanctuary", "Interface/Icons/Spell_Holy_GreaterBlessingofSanctuary", -160)
-checkItem("ARInt",  "Intellect/Brilliance", "Interface/Icons/Spell_Holy_ArcaneIntellect", -180)
-checkItem("ARPoS",  "Prayer of Spirit", "Interface/Icons/Spell_Holy_PrayerofSpirit", -200)
-checkItem("ARThorns","Thorns", "Interface/Icons/Spell_Nature_Thorns", -220)
-
-function openWindow()
-  frameMain:Show()
+local checkPos_y = 100
+for k,v in pairs(buffList) do
+  checkPos_y = checkPos_y +20
+  checkItem(v[1], v[2], v[3], -checkPos_y)
 end
 
---[==[
-self:RegisterEvent("PARTY_INVITE_REQUEST", "confirmPartyInvite")
-function MyAddon:confirmPartyInvite(info, sender)
-  if ( MyAddon:someTestOfSenderThatYouMakeUp(sender) ) then
-    AcceptGroup()
-    self:RegisterEvent("PARTY_MEMBERS_CHANGED", "closePopup")
-  end
+local function openWindow()
+  AAFrameMain:Show()
 end
 
-function MyAddon:closePopup()
-  StaticPopup_Hide("PARTY_INVITE")
-  self:UnregisterEvent("PARTY_MEMBERS_CHANGED")
-end
-]==]--
-
-function closeWindow()
-  frameMain:Hide()
+local function closeWindow()
+  AAFrameMain:Hide()
 end
 
 SlashCmdList["AutoAura"] = function(msg)

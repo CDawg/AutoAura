@@ -18,9 +18,11 @@ https://www.wowinterface.com/forums/showthread.php?t=40444
 -- notes: if unitid ~= "player" then return end
 ]==]--
 
-app_global = "|cffDA70D6AutoAura: |r"
-app_font   = "Fonts/ARIALN.ttf"
-app_version= 1.210
+local app_name   = "AutoAura"
+local app_global = "|cffDA70D6" .. app_name .. ": |r"
+local app_font   = "Fonts/ARIALN.ttf"
+local app_version= 1.210
+local title_color= "|cffFF7D0A"
 
 print(app_global .. "Initializing v" .. app_version .. "...")
 
@@ -134,8 +136,19 @@ AAFrame:SetScript("OnEvent", function(self, event, arg1)
 end)
 
 SLASH_AutoAura1 = "/AutoAura"
+SLASH_AutoAura2 = "/aa"
 function SlashCmdList.AutoAura(msg)
   -- print("debug " .. AutoAura)
+end
+
+local buttonMinimap ={}
+
+local function split(s, delimiter)
+  result = {}
+  for match in (s..delimiter):gmatch("(.-)"..delimiter) do
+    table.insert(result, match)
+  end
+  return result
 end
 
 function setAutoAuraVars()
@@ -146,35 +159,45 @@ function setAutoAuraVars()
   end
   if (AutoAura[playerName]["HideMMI"]) then
     checkbox["HideMMI"]:SetChecked(true)
+    buttonMinimap:Hide()
+  end
+  if (AutoAura[playerName]["ICONPOS"]) then
+    minimapIconPos = split(AutoAura[playerName]["ICONPOS"], ",")
+    if ((minimapIconPos[1]) and (minimapIconPos[2])) then
+      buttonMinimap:SetPoint("TOPLEFT", Minimap, "TOPLEFT", minimapIconPos[1]+130, minimapIconPos[2]+22)
+    end
   end
 end
 
 function saveAutoAuraVars()
-
   for k,v in pairs(buffList) do
     AutoAura[playerName][v[1]] = checkbox[v[1]]:GetChecked()
   end
   AutoAura[playerName]["HideMMI"] = checkbox["HideMMI"]:GetChecked()
+  if (checkbox["HideMMI"]:GetChecked()) then
+    buttonMinimap:Hide()
+  else
+    buttonMinimap:Show()
+  end
 end
 
 local AAFrameMain = CreateFrame("Frame", nil, UIParent, "BasicFrameTemplateWithInset")
 AAFrameMain:SetWidth(260)
-AAFrameMain:SetHeight(300)
+AAFrameMain:SetHeight(340)
 AAFrameMain:SetPoint("CENTER", 0, 0)
 AAFrameMain:SetMovable(true)
 AAFrameMain.text = AAFrameMain:CreateFontString(nil,"ARTWORK")
 AAFrameMain.text:SetFont(app_font, 13, "OUTLINE")
 AAFrameMain.text:SetPoint("TOPLEFT", AAFrameMain, "TOPLEFT", 10, -5)
-AAFrameMain.text:SetText("|cffFF7D0AAUTO AURA " .. app_version)
+AAFrameMain.text:SetText("|cffFF7D0AAUTO AURA       v" .. app_version)
 AAFrameMain:Hide()
 local AAProfileText = CreateFrame("Frame",nil, AAFrameMain)
-AAProfileText:SetWidth(100)
-AAProfileText:SetHeight(30)
-AAProfileText:SetPoint("TOPLEFT", 10, -20)
+AAProfileText:SetSize(100, 30)
+AAProfileText:SetPoint("TOPLEFT", 10, -40)
 AAProfileText.text=AAProfileText:CreateFontString(nil, "ARTWORK")
-AAProfileText.text:SetFont(app_font, 14, "OUTLINE")
-AAProfileText.text:SetPoint("TOPLEFT", 10, -20)
-AAProfileText.text:SetText("Profile:")
+AAProfileText.text:SetFont(app_font, 15, "OUTLINE")
+AAProfileText.text:SetPoint("TOPLEFT", 0, 0)
+AAProfileText.text:SetText(title_color .. "Profile")
 local AAProfileChar = CreateFrame("Frame",nil, AAFrameMain)
 AAProfileChar:SetWidth(100)
 AAProfileChar:SetHeight(30)
@@ -182,7 +205,7 @@ AAProfileChar:SetPoint("TOPLEFT", 20, -30)
 AAProfileChar.text=AAProfileChar:CreateFontString(nil, "ARTWORK")
 AAProfileChar.text:SetFont(app_font, 14, "OUTLINE")
 AAProfileChar.text:SetPoint("TOPLEFT", 20, -30)
-AAProfileChar.text:SetText("|cffFF7D0A" .. UnitName("player") .. " [" .. GetRealmName() .. "]")
+AAProfileChar.text:SetText(UnitName("player") .. " [" .. GetRealmName() .. "]")
 AANotification = CreateFrame("Frame", nil, UIParent)
 AANotification:SetWidth(300)
 AANotification:SetHeight(30)
@@ -215,21 +238,28 @@ function checkItem(checkID, checkName, icon, posY)
   checkbox[checkID] = check_static
 end
 
+local frameTextBuffs = CreateFrame("Frame",nil, AAFrameMain)
+frameTextBuffs:SetSize(100, 30)
+frameTextBuffs:SetPoint("TOPLEFT", 10, -100)
+frameTextBuffs.text=frameTextBuffs:CreateFontString(nil, "ARTWORK")
+frameTextBuffs.text:SetFont(app_font, 15, "OUTLINE")
+frameTextBuffs.text:SetPoint("TOPLEFT", 0, 0)
+frameTextBuffs.text:SetText(title_color .. "Auto Remove")
 
-local frameText = CreateFrame("Frame",nil, AAFrameMain)
-frameText:SetWidth(100)
-frameText:SetHeight(30)
-frameText:SetPoint("TOPLEFT", 10, -50)
-frameText.text=frameText:CreateFontString(nil, "ARTWORK")
-frameText.text:SetFont(app_font, 14, "OUTLINE")
-frameText.text:SetPoint("TOPLEFT", 10, -50)
-frameText.text:SetText("Auto Remove:")
+local frameTextConfig = CreateFrame("Frame",nil, AAFrameMain)
+frameTextConfig:SetSize(100, 30)
+frameTextConfig:SetPoint("TOPLEFT", 10, -270)
+frameTextConfig.text=frameTextConfig:CreateFontString(nil, "ARTWORK")
+frameTextConfig.text:SetFont(app_font, 15, "OUTLINE")
+frameTextConfig.text:SetPoint("TOPLEFT", 0, 0)
+frameTextConfig.text:SetText(title_color .. "Config")
 
 local checkPos_y = 100
 for k,v in pairs(buffList) do
   checkPos_y = checkPos_y +20
   checkItem(v[1], v[2], v[3], -checkPos_y)
 end
+checkItem("HideMMI", "Hide Minimap Icon", "", -290)
 
 local function openWindow()
   AAFrameMain:Show()
@@ -243,13 +273,15 @@ SlashCmdList["AutoAura"] = function(msg)
   openWindow()
 end
 
-local buttonMinimap = CreateFrame("Button", nil, Minimap)
-buttonMinimap:SetFrameLevel(6)
-buttonMinimap:SetSize(22, 22)
+buttonMinimap = CreateFrame("Button", nil, Minimap)
+buttonMinimap:SetFrameLevel(499)
+buttonMinimap:SetFrameStrata("TOOLTIP")
+buttonMinimap:SetSize(26, 26)
 buttonMinimap:SetMovable(true)
-buttonMinimap:SetNormalTexture("Interface/Icons/Spell_Holy_GreaterBlessingofSalvation")
-buttonMinimap:SetPushedTexture("Interface/Icons/Spell_Holy_GreaterBlessingofSalvation")
-buttonMinimap:SetHighlightTexture("Interface/Icons/Spell_Holy_GreaterBlessingofSalvation")
+local MMIcon = "Interface/Addons/" .. app_name .. "/images/icon_aa"
+buttonMinimap:SetNormalTexture(MMIcon)
+buttonMinimap:SetPushedTexture(MMIcon)
+buttonMinimap:SetHighlightTexture(MMIcon)
 
 local myIconPos = 0
 
@@ -260,7 +292,7 @@ local function UpdateMapButton()
   Ypoa = Ypoa / Minimap:GetEffectiveScale() - Ymin - 70
   myIconPos = math.deg(math.atan2(Ypoa, Xpoa))
   buttonMinimap:ClearAllPoints()
-  buttonMinimap:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 62 - (80 * cos(myIconPos)), (80 * sin(myIconPos)) - 62)
+  buttonMinimap:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 60 - (80 * cos(myIconPos)), (80 * sin(myIconPos)) - 56)
 end
 buttonMinimap:RegisterForDrag("LeftButton")
 buttonMinimap:SetScript("OnDragStart", function()
@@ -270,10 +302,12 @@ end)
 buttonMinimap:SetScript("OnDragStop", function()
     buttonMinimap:StopMovingOrSizing()
     buttonMinimap:SetScript("OnUpdate", nil)
+    local point, relativeTo, relativePoint, xOfs, yOfs = buttonMinimap:GetPoint()
+    AutoAura[playerName]["ICONPOS"] = math.ceil(xOfs) .. "," .. math.ceil(yOfs)
     UpdateMapButton()
 end)
 buttonMinimap:ClearAllPoints()
-buttonMinimap:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 62 - (80 * cos(myIconPos)),(80 * sin(myIconPos)) - 62)
+buttonMinimap:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 60 - (80 * cos(myIconPos)),(80 * sin(myIconPos)) - 56)
 buttonMinimap:SetScript("OnClick", function()
   openWindow()
 end)

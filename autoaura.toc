@@ -5,4 +5,4 @@
 ## SavedVariables:AutoAura
 ## OptionalDeps: Blizzard_RaidUI, Blizzard_CompactRaidFrames
 
-autoaura.lua
+AutoAura.lua

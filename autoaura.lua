@@ -138,7 +138,7 @@ function SlashCmdList.AutoAura(msg)
   -- print("debug " .. AutoAura)
 end
 
-local function setAutoAuraVars()
+function setAutoAuraVars()
   for k,v in pairs(buffList) do
     if (AutoAura[playerName][v[1]]) then
       checkbox[v[1]]:SetChecked(true)

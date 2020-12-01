@@ -21,7 +21,7 @@ https://www.wowinterface.com/forums/showthread.php?t=40444
 local app_name   = "AutoAura"
 local app_global = "|cffDA70D6" .. app_name .. ": |r"
 local app_font   = "Fonts/ARIALN.ttf"
-local app_version= 1.22
+local app_version= 1.23
 local title_color= "|cffFF7D0A"
 
 print(app_global .. "Initializing v" .. app_version .. "...")
@@ -39,34 +39,39 @@ end
 
 local _GTime = 1
 local function fadeNotification()
-  _GTime = _GTime -0.060
+  _GTime = _GTime -0.020
   --print(_GTime)
   AANotification.text:SetTextColor(1,1,1,_GTime)
   if (_GTime <= 0.01) then
     _GTime = 1
     --print("clear")
     clearNotifications()
-    return false
+  else
+    C_Timer.After(0.20, fadeNotification)
   end
-  C_Timer.After(0.10, fadeNotification)
 end
 
-local function Notification(msg)
+local function Notification(msg, color)
   AANotification:Show()
-  AANotification.text:SetText(app_global .. msg)
-  AANotification.text:SetTextColor(1,1,1,1)
-  --_G[]
-  C_Timer.After(5, function()
+  AANotification.text:SetText(app_global .. "|cff" .. color .. msg)
+  _GTime = 1
+  AANotification.text:SetTextColor(1,1,1,_GTime)
+  timerReset = C_Timer.NewTimer(1, fadeNotification())
+  timerReset:Cancel()
+
+  --[==[
+  C_Timer.After(6, function()
     fadeNotification()
   end)
+  ]==]--
 end
 
 local function CancelPlayerBuff(buffName, buffIndex)
   local i = 0
   if (UnitAffectingCombat('player')) then
-    Notification("Unable to remove [" .. buffName .. "] during combat!")
+    Notification("Unable to remove [" .. buffName .. "] during combat!", "ff0000")
   else
-    Notification(buffName .. " removed!")
+    Notification(buffName .. " removed!", "ffffff")
     CancelUnitBuff("player", buffIndex)
   end
 end
@@ -209,10 +214,10 @@ AAProfileChar.text:SetText(UnitName("player") .. " [" .. GetRealmName() .. "]")
 AANotification = CreateFrame("Frame", nil, UIParent)
 AANotification:SetWidth(300)
 AANotification:SetHeight(30)
-AANotification:SetPoint("BOTTOMLEFT", 15, 350)
+AANotification:SetPoint("BOTTOMLEFT", 30, 350)
 AANotification:SetFrameLevel(500)
 AANotification.text = AANotification:CreateFontString(nil, "ARTWORK")
-AANotification.text:SetFont(app_font, 15)
+AANotification.text:SetFont(app_font, 16)
 AANotification.text:SetPoint("TOPLEFT", 0, 0)
 AANotification.text:SetText("")
 AANotification.text:SetTextColor(1, 1, 1, 1)

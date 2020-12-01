@@ -21,7 +21,7 @@ https://www.wowinterface.com/forums/showthread.php?t=40444
 local app_name   = "AutoAura"
 local app_global = "|cffDA70D6" .. app_name .. ": |r"
 local app_font   = "Fonts/ARIALN.ttf"
-local app_version= 1.23
+local app_version= 1.24
 local title_color= "|cffFF7D0A"
 
 print(app_global .. "Initializing v" .. app_version .. "...")

@@ -23,6 +23,7 @@ local app_global = "|cffDA70D6" .. app_name .. ": |r"
 local app_font   = "Fonts/ARIALN.ttf"
 local app_version= 1.24
 local title_color= "|cffFF7D0A"
+local only_tank_key = "OnlyTankRole"
 
 print(app_global .. "Initializing v" .. app_version .. "...")
 
@@ -96,6 +97,19 @@ end
 local function handleAuras()
   local total = 1
 
+  if (checkbox[only_tank_key]:GetChecked()) then
+    local playerClass, englishClass = UnitClass("player")
+    local form = GetShapeshiftForm()
+    -- print(app_global .. playerClass .. " " .. englishClass .. " " .. form )
+
+    if (englishClass == "DRUID") then
+        if (form ~= 1) then return end  -- druid bear form
+    end
+    if (englishClass == "WARRIOR") then
+        if (form ~= 2) then return end  -- warrior defensive stance
+    end
+  end
+
   while UnitBuff("player", total) do
     local buff = UnitBuff("player", total)
 
@@ -115,6 +129,7 @@ local AAFrame = CreateFrame("Frame")
 AAFrame:RegisterEvent("ADDON_LOADED")
 AAFrame:RegisterEvent("PLAYER_LOGOUT")
 AAFrame:RegisterEvent("UNIT_AURA")
+AAFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
 AAFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 AAFrame:SetScript("OnEvent", function(self, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "AutoAura" then
@@ -132,6 +147,9 @@ AAFrame:SetScript("OnEvent", function(self, event, arg1)
   end
 
   if event == "UNIT_AURA" then
+    handleAuras()
+  end
+  if event == "UPDATE_SHAPESHIFT_FORM" then
     handleAuras()
   end
   if event == "PLAYER_REGEN_ENABLED" then -- leaves combat for all
@@ -166,6 +184,9 @@ function setAutoAuraVars()
     checkbox["HideMMI"]:SetChecked(true)
     buttonMinimap:Hide()
   end
+  if (AutoAura[playerName][only_tank_key]) then
+    checkbox[only_tank_key]:SetChecked(true)
+  end
   if (AutoAura[playerName]["ICONPOS"]) then
     minimapIconPos = split(AutoAura[playerName]["ICONPOS"], ",")
     if ((minimapIconPos[1]) and (minimapIconPos[2])) then
@@ -184,11 +205,12 @@ function saveAutoAuraVars()
   else
     buttonMinimap:Show()
   end
+  AutoAura[playerName][only_tank_key] = checkbox[only_tank_key]:GetChecked()
 end
 
 local AAFrameMain = CreateFrame("Frame", nil, UIParent, "BasicFrameTemplateWithInset")
 AAFrameMain:SetWidth(260)
-AAFrameMain:SetHeight(340)
+AAFrameMain:SetHeight(360)
 AAFrameMain:SetPoint("CENTER", 0, 0)
 AAFrameMain:SetMovable(true)
 AAFrameMain.text = AAFrameMain:CreateFontString(nil,"ARTWORK")
@@ -265,6 +287,7 @@ for k,v in pairs(buffList) do
   checkItem(v[1], v[2], v[3], -checkPos_y)
 end
 checkItem("HideMMI", "Hide Minimap Icon", "", -290)
+checkItem(only_tank_key, "Only for tank roles", "", -310)
 
 local function openWindow()
   AAFrameMain:Show()
